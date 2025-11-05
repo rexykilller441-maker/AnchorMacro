@@ -1,4 +1,16 @@
 {
   "key.anchormacro.execute": "Execute Anchor Macro",
-  "category.anchormacro.main": "Anchor Macro"
+  "key.anchormacro.open_settings": "Open Anchor Macro Settings",
+  "category.anchormacro.main": "Anchor Macro",
+  "anchormacro.gui.title": "Anchor Macro Settings",
+  "anchormacro.gui.delays": "Action Delays (ticks)",
+  "anchormacro.gui.slots": "Hotbar Slots (0-8)",
+  "anchormacro.gui.safe_mode": "Safe Anchor Mode",
+  "anchormacro.gui.explode_with_totem": "Explode only if totem present",
+  "anchormacro.gui.save": "Save",
+  "anchormacro.gui.cancel": "Cancel",
+  "anchormacro.gui.reset": "Reset to defaults",
+  "anchormacro.notification.no_glowstone": "No glowstone found in hotbar!",
+  "anchormacro.notification.no_anchor": "No respawn anchor found in hotbar!",
+  "anchormacro.notification.no_totem": "No totem found in hotbar!"
 }
