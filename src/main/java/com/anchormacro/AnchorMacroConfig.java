@@ -95,4 +95,15 @@ public class AnchorMacroConfig {
         this.explodeOnlyIfTotemPresent = def.explodeOnlyIfTotemPresent;
         this.showNotifications = def.showNotifications;
     }
-                                  }
+
+    /** Reloads the configuration from disk safely */
+    public static void reload() {
+        try {
+            AnchorMacroConfig newCfg = load();
+            INSTANCE = newCfg;
+            AnchorMacroClient.log("Config reloaded successfully.");
+        } catch (Exception e) {
+            AnchorMacroClient.log("Failed to reload config, keeping old settings: " + e.getMessage());
+        }
+    }
+}
