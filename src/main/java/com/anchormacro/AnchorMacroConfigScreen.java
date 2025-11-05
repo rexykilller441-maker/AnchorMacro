@@ -1,15 +1,14 @@
 package com.anchormacro;
 
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 
 public class AnchorMacroConfigScreen extends Screen {
     private final Screen parent;
     private final AnchorMacroConfig cfg;
 
-    // layout positions
     private int centerX;
     private int startY;
 
@@ -21,7 +20,6 @@ public class AnchorMacroConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        super.init();
         centerX = this.width / 2;
         startY = 30;
         int y = startY;
@@ -48,50 +46,66 @@ public class AnchorMacroConfigScreen extends Screen {
         y += spacing + 6;
 
         // === Toggles ===
-        this.addDrawableChild(new ButtonWidget(centerX - 120, y, 230, 20,
+        this.addDrawableChild(ButtonWidget.builder(
                 Text.literal("Safe Anchor Mode: " + (cfg.safeAnchorMode ? "ON" : "OFF")),
-                b -> { cfg.safeAnchorMode = !cfg.safeAnchorMode; init(); }));
+                b -> { cfg.safeAnchorMode = !cfg.safeAnchorMode; init(); })
+                .position(centerX - 120, y)
+                .size(230, 20)
+                .build());
         y += spacing;
 
-        this.addDrawableChild(new ButtonWidget(centerX - 120, y, 230, 20,
+        this.addDrawableChild(ButtonWidget.builder(
                 Text.literal("Explode only if totem present: " + (cfg.explodeOnlyIfTotemPresent ? "YES" : "NO")),
-                b -> { cfg.explodeOnlyIfTotemPresent = !cfg.explodeOnlyIfTotemPresent; init(); }));
+                b -> { cfg.explodeOnlyIfTotemPresent = !cfg.explodeOnlyIfTotemPresent; init(); })
+                .position(centerX - 120, y)
+                .size(230, 20)
+                .build());
         y += spacing;
 
         // === Bottom buttons ===
-        this.addDrawableChild(new ButtonWidget(centerX - 100, height - 40, 80, 20,
-                Text.literal("Save"), b -> { cfg.save(); onClose(); }));
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Save"), b -> {
+            cfg.save();
+            this.close();
+        }).position(centerX - 100, height - 40).size(80, 20).build());
 
-        this.addDrawableChild(new ButtonWidget(centerX - 5, height - 40, 80, 20,
-                Text.literal("Cancel"), b -> {
-                    AnchorMacroConfig.INSTANCE = null; // reload on next get()
-                    onClose();
-                }));
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Cancel"), b -> {
+            AnchorMacroConfig.reload();
+            this.close();
+        }).position(centerX - 5, height - 40).size(80, 20).build());
 
-        this.addDrawableChild(new ButtonWidget(centerX + 90, height - 40, 80, 20,
-                Text.literal("Reset"), b -> { cfg.resetToDefaults(); init(); }));
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Reset"), b -> {
+            cfg.resetToDefaults();
+            init();
+        }).position(centerX + 90, height - 40).size(80, 20).build());
     }
 
     private void addDelayControl(String label, int y, SupplierInt getter, ConsumerInt setter) {
         int val = getter.get();
         this.addDrawableChild(makeLabel(centerX - 120, y, label + ": " + val + "t"));
-        this.addDrawableChild(new ButtonWidget(centerX + 40, y - 6, 20, 20, Text.literal("-"),
-                b -> { setter.accept(Math.max(0, val - 1)); init(); }));
-        this.addDrawableChild(new ButtonWidget(centerX + 65, y - 6, 20, 20, Text.literal("+"),
-                b -> { setter.accept(Math.min(200, val + 1)); init(); }));
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("-"), b -> {
+            setter.accept(Math.max(0, val - 1)); init();
+        }).position(centerX + 40, y - 6).size(20, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("+"), b -> {
+            setter.accept(Math.min(200, val + 1)); init();
+        }).position(centerX + 65, y - 6).size(20, 20).build());
     }
 
     private void addSlotControl(String label, int y, SupplierInt getter, ConsumerInt setter) {
         int val = getter.get();
         this.addDrawableChild(makeLabel(centerX - 120, y, label + ": " + val));
-        this.addDrawableChild(new ButtonWidget(centerX + 40, y - 6, 20, 20, Text.literal("-"),
-                b -> { setter.accept(clampSlot(val - 1)); init(); }));
-        this.addDrawableChild(new ButtonWidget(centerX + 65, y - 6, 20, 20, Text.literal("+"),
-                b -> { setter.accept(clampSlot(val + 1)); init(); }));
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("-"), b -> {
+            setter.accept(clampSlot(val - 1)); init();
+        }).position(centerX + 40, y - 6).size(20, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("+"), b -> {
+            setter.accept(clampSlot(val + 1)); init();
+        }).position(centerX + 65, y - 6).size(20, 20).build());
     }
 
     private ButtonWidget makeLabel(int x, int y, String text) {
-        ButtonWidget b = new ButtonWidget(x, y, 230, 20, Text.literal(text), btn -> {});
+        ButtonWidget b = ButtonWidget.builder(Text.literal(text), btn -> {})
+                .position(x, y)
+                .size(230, 20)
+                .build();
         b.active = false;
         return b;
     }
@@ -101,20 +115,17 @@ public class AnchorMacroConfigScreen extends Screen {
     }
 
     @Override
-    public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-        this.renderBackground(matrices);
-        drawCenteredText(matrices, this.textRenderer, this.title, centerX, 10, 0xFFFFFF);
-        super.render(matrices, mouseX, mouseY, delta);
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        this.renderBackground(context, mouseX, mouseY, delta);
+        context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 10, 0xFFFFFF);
+        super.render(context, mouseX, mouseY, delta);
     }
 
     @Override
-    public void onClose() {
-        if (this.client != null) {
-            this.client.setScreen(parent);
-        }
+    public void close() {
+        this.client.setScreen(parent);
     }
 
-    // tiny helper interfaces (since we can't use lambdas with primitive ints easily)
     @FunctionalInterface private interface SupplierInt { int get(); }
     @FunctionalInterface private interface ConsumerInt { void accept(int v); }
 }
