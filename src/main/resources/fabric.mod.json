@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "anchormacro",
+  "version": "1.0.0",
+  "name": "Anchor Macro",
+  "description": "Places respawn anchor, charges it, and explodes it with one keybind",
+  "authors": ["YourName"],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/anchormacro/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.anchormacro.AnchorMacroClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.21",
+    "java": ">=21",
+    "fabric-api": "*",
+    "fabric-key-binding-api-v1": "*"
+  }
+}
