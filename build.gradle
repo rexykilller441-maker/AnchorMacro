@@ -1,5 +1,6 @@
 plugins {
-    id 'fabric-loom' version '1.7-SNAPSHOT'
+    // ✅ Use the stable Loom version instead of 1.7-SNAPSHOT
+    id 'fabric-loom' version '1.6.5'
     id 'maven-publish'
 }
 
@@ -11,37 +12,41 @@ base {
 }
 
 repositories {
-    maven { url 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
 }
 
 dependencies {
+    // Minecraft & Fabric setup for 1.21
     minecraft "com.mojang:minecraft:1.21"
     mappings "net.fabricmc:yarn:1.21+build.9:v2"
     modImplementation "net.fabricmc:fabric-loader:0.15.11"
+
+    // Fabric API for client features (keybinds, tick events, etc.)
     modImplementation "net.fabricmc.fabric-api:fabric-api:0.100.1+1.21"
 }
 
 processResources {
     inputs.property "version", project.version
-    
+
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
+    // Java 21 compatibility
     it.options.release = 21
 }
 
 java {
     withSourcesJar()
-    
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
 
 jar {
     from("LICENSE") {
-        rename { "${it}_${project.archivesBaseName}"}
+        rename { "${it}_${project.archivesBaseName}" }
     }
 }
