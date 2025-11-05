@@ -2,32 +2,49 @@ package com.anchormacro;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
 
 public class AnchorMacroClient implements ClientModInitializer {
-    
-    private static KeyBinding anchorMacroKey;
-    
+    public static MinecraftClient mc;
+
     @Override
     public void onInitializeClient() {
-        anchorMacroKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-            "key.anchormacro.execute",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_GRAVE_ACCENT,
-            "category.anchormacro.main"
-        ));
-        
+        mc = MinecraftClient.getInstance();
+
+        // register keybinds
+        AnchorMacroKeybinds.register();
+
+        // ensure config is loaded
+        AnchorMacroConfig.get();
+
+        // tick listener for key actions
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (anchorMacroKey.wasPressed()) {
-                if (client.player != null) {
-                    AnchorMacroExecutor.execute(client);
+            if (client.currentScreen == null) { // only respond when not typing in chat/gui
+                if (AnchorMacroKeybinds.executeKey.wasPressed()) {
+                    if (client.player != null) {
+                        AnchorMacroExecutor.execute(client);
+                    }
                 }
+
+                if (AnchorMacroKeybinds.openConfigKey.wasPressed()) {
+                    openConfigScreen();
+                }
+            } else {
+                // allow opening config even when a screen is open? currently restricted
             }
         });
-        
-        System.out.println("Anchor Macro mod initialized!");
+
+        log("Anchor Macro initialized!");
+    }
+
+    private void openConfigScreen() {
+        if (mc == null) mc = MinecraftClient.getInstance();
+        Screen screen = new AnchorMacroConfigScreen(mc.currentScreen);
+        mc.setScreen(screen);
+    }
+
+    public static void log(String s) {
+        System.out.println("[AnchorMacro] " + s);
     }
 }
