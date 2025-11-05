@@ -1,5 +1,5 @@
 plugins {
-    // ✅ Stable Fabric Loom version (avoid snapshots)
+    // ✅ Stable Loom — no snapshots
     id 'fabric-loom' version '1.6.5'
     id 'maven-publish'
 }
@@ -12,25 +12,28 @@ base {
 }
 
 repositories {
-    // 🧱 Main Fabric Maven
+    // Main Fabric Maven
     maven { url = 'https://maven.fabricmc.net/' }
 
-    // 🔄 Backup mirrors (to prevent 522/timeout issues)
+    // Backup mirrors (for Fabric API downtime)
     maven { url = 'https://maven.minecraftforge.net' }
     maven { url = 'https://jitpack.io' }
 
-    // 🏛️ Central Maven for standard dependencies
+    // Standard Maven Central
     mavenCentral()
 }
 
 dependencies {
-    // 🧩 Minecraft + Mappings
+    // Minecraft + mappings
     minecraft "com.mojang:minecraft:1.21"
     mappings "net.fabricmc:yarn:1.21+build.9:v2"
 
-    // ⚙️ Fabric Loader & API
+    // Fabric Loader & API
     modImplementation "net.fabricmc:fabric-loader:0.15.11"
     modImplementation "net.fabricmc.fabric-api:fabric-api:0.100.1+1.21"
+
+    // ✅ Gson for JSON config
+    implementation "com.google.code.gson:gson:2.10.1"
 }
 
 processResources {
@@ -42,7 +45,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    // ☕ Use Java 21
+    // ☕ Java 21 target
     it.options.release = 21
 }
 
@@ -55,5 +58,17 @@ java {
 jar {
     from("LICENSE") {
         rename { "${it}_${project.archivesBaseName}" }
+    }
+}
+
+// ✅ Optional: publish block (for Modrinth or GitHub builds later)
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        // Add your repo if you plan to publish
     }
 }
