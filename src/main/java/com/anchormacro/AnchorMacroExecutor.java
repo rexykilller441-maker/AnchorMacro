@@ -15,25 +15,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Handles the full automation sequence.
  * Supports auto-search (hotbar only) and safe anchor mode.
+ * Automatically unregisters its tick listener at end to prevent freeze.
  */
 public class AnchorMacroExecutor {
     private static final AtomicBoolean running = new AtomicBoolean(false);
+    private static ClientTickEvents.EndTick activeHandler;
     private static int step = 0;
     private static int tickCounter = 0;
 
     public static void execute(MinecraftClient client) {
-        if (running.get()) return; // already running
+        if (running.get()) return;
         ClientPlayerEntity player = client.player;
         if (player == null) return;
 
         final AnchorMacroConfig cfg = AnchorMacroConfig.get();
 
-        // Resolve internal slots (gui 1..9 -> internal 0..8)
         int aSlot = AnchorMacroConfig.guiToInternalSlot(cfg.anchorSlot);
         int gSlot = AnchorMacroConfig.guiToInternalSlot(cfg.glowstoneSlot);
         int tSlot = AnchorMacroConfig.guiToInternalSlot(cfg.totemSlot);
 
-        // Auto-search hotbar (1–9)
         if (cfg.autoSearchHotbar) {
             aSlot = findHotbarSlotFor(player, Items.RESPAWN_ANCHOR, aSlot);
             gSlot = findHotbarSlotFor(player, Items.GLOWSTONE, gSlot);
@@ -44,7 +44,6 @@ public class AnchorMacroExecutor {
         final int glowstoneSlot = gSlot;
         final int totemSlot = tSlot;
 
-        // Validate presence
         if (!player.getInventory().getStack(anchorSlot).isOf(Items.RESPAWN_ANCHOR)) {
             if (cfg.showNotifications)
                 player.sendMessage(net.minecraft.text.Text.literal("§cAnchor not found in hotbar!"), false);
@@ -60,109 +59,103 @@ public class AnchorMacroExecutor {
                     || player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING);
             if (!hasTotem) {
                 if (cfg.showNotifications)
-                    player.sendMessage(net.minecraft.text.Text.literal("§cTotem not found in hotbar/offhand — aborting explosion."), false);
+                    player.sendMessage(net.minecraft.text.Text.literal("§cTotem not found — aborting explosion."), false);
                 return;
             }
         }
 
-        // Start macro
         running.set(true);
         step = 1;
         tickCounter = 0;
 
-        ClientTickEvents.END_CLIENT_TICK.register(new ClientTickEvents.EndTick() {
-            @Override
-            public void onEndTick(MinecraftClient mc) {
-                if (!running.get()) return;
-                ClientPlayerEntity p = mc.player;
-                if (p == null) {
-                    running.set(false);
-                    return;
-                }
+        // remove old handler if any
+        if (activeHandler != null)
+            ClientTickEvents.END_CLIENT_TICK.unregister(activeHandler);
 
-                tickCounter++;
+        activeHandler = mc -> {
+            if (!running.get()) return;
+            ClientPlayerEntity p = mc.player;
+            if (p == null) {
+                stop();
+                return;
+            }
 
+            tickCounter++;
+
+            try {
                 switch (step) {
-                    case 1:
+                    case 1 -> {
                         if (tickCounter >= cfg.delayPlaceAnchor) {
                             selectSlot(p, anchorSlot);
                             placeBlock(mc, p);
                             step = 2;
                             tickCounter = 0;
                         }
-                        break;
-
-                    case 2:
+                    }
+                    case 2 -> {
                         if (tickCounter >= cfg.delaySwitchToGlowstone) {
                             selectSlot(p, glowstoneSlot);
                             step = 3;
                             tickCounter = 0;
                         }
-                        break;
-
-                    case 3:
+                    }
+                    case 3 -> {
                         if (tickCounter >= cfg.delayChargeAnchor) {
                             rightClick(mc, p);
                             step = 4;
                             tickCounter = 0;
                         }
-                        break;
-
-                    case 4:
+                    }
+                    case 4 -> {
                         if (cfg.safeAnchorMode) {
                             if (tickCounter >= 1) {
                                 placeGlowstoneInFrontIfPossible(mc, p, glowstoneSlot);
                                 step = 5;
                                 tickCounter = 0;
                             }
-                        } else {
-                            if (tickCounter >= cfg.delaySwitchToTotem) {
-                                selectSlot(p, AnchorMacroConfig.guiToInternalSlot(cfg.totemSlot));
-                                step = 5;
-                                tickCounter = 0;
-                            }
-                        }
-                        break;
-
-                    case 5:
-                        if (tickCounter >= cfg.delaySwitchToTotem) {
+                        } else if (tickCounter >= cfg.delaySwitchToTotem) {
                             selectSlot(p, AnchorMacroConfig.guiToInternalSlot(cfg.totemSlot));
+                            step = 5;
                             tickCounter = 0;
                         }
-
+                    }
+                    case 5 -> {
                         if (tickCounter >= cfg.delayExplodeAnchor) {
                             boolean hasTotem = p.getInventory().getStack(AnchorMacroConfig.guiToInternalSlot(cfg.totemSlot)).isOf(Items.TOTEM_OF_UNDYING)
                                     || p.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING);
-
                             if (cfg.explodeOnlyIfTotemPresent && !hasTotem) {
                                 if (cfg.showNotifications)
                                     p.sendMessage(net.minecraft.text.Text.literal("§cTotem missing — skipped explosion."), false);
-                                running.set(false);
+                                stop();
                                 return;
                             }
-
                             rightClick(mc, p);
-                            running.set(false);
+                            stop();
                         }
-                        break;
-
-                    default:
-                        running.set(false);
-                        break;
+                    }
                 }
+            } catch (Exception ignored) {
+                stop();
             }
-        });
+        };
+
+        ClientTickEvents.END_CLIENT_TICK.register(activeHandler);
+    }
+
+    private static void stop() {
+        running.set(false);
+        if (activeHandler != null)
+            ClientTickEvents.END_CLIENT_TICK.unregister(activeHandler);
+        activeHandler = null;
     }
 
     private static int findHotbarSlotFor(ClientPlayerEntity player, net.minecraft.item.Item item, int preferredSlot) {
         ItemStack pref = player.getInventory().getStack(preferredSlot);
         if (pref != null && pref.getItem() == item) return preferredSlot;
-
         for (int i = 0; i < 9; i++) {
             ItemStack s = player.getInventory().getStack(i);
             if (s != null && s.getItem() == item) return i;
         }
-
         return preferredSlot;
     }
 
@@ -173,63 +166,39 @@ public class AnchorMacroExecutor {
 
     private static void placeBlock(MinecraftClient client, ClientPlayerEntity player) {
         if (client.interactionManager == null) return;
-
         Vec3d start = player.getEyePos();
         Vec3d look = player.getRotationVec(1.0F);
         Vec3d end = start.add(look.multiply(5.0));
-
-        BlockHitResult hit = client.world.raycast(new RaycastContext(
-                start, end,
-                RaycastContext.ShapeType.OUTLINE,
-                RaycastContext.FluidHandling.NONE,
-                player
-        ));
-
-        if (hit == null) {
-            hit = new BlockHitResult(player.getPos(), Direction.UP,
-                    BlockPos.ofFloored(player.getPos().add(0, -1, 0)), false);
-        }
-
+        BlockHitResult hit = client.world.raycast(new RaycastContext(start, end,
+                RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, player));
+        if (hit == null)
+            hit = new BlockHitResult(player.getPos(), Direction.UP, BlockPos.ofFloored(player.getPos().add(0, -1, 0)), false);
         client.interactionManager.interactBlock(player, Hand.MAIN_HAND, hit);
     }
 
     private static void rightClick(MinecraftClient client, ClientPlayerEntity player) {
         if (client.interactionManager == null) return;
-
         Vec3d start = player.getEyePos();
         Vec3d look = player.getRotationVec(1.0F);
         Vec3d end = start.add(look.multiply(5.0));
-
-        BlockHitResult hit = client.world.raycast(new RaycastContext(
-                start, end,
-                RaycastContext.ShapeType.OUTLINE,
-                RaycastContext.FluidHandling.NONE,
-                player
-        ));
-
-        if (hit != null) {
-            client.interactionManager.interactBlock(player, Hand.MAIN_HAND, hit);
-        } else {
-            client.interactionManager.interactItem(player, Hand.MAIN_HAND);
-        }
+        BlockHitResult hit = client.world.raycast(new RaycastContext(start, end,
+                RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, player));
+        if (hit != null) client.interactionManager.interactBlock(player, Hand.MAIN_HAND, hit);
+        else client.interactionManager.interactItem(player, Hand.MAIN_HAND);
     }
 
     private static void placeGlowstoneInFrontIfPossible(MinecraftClient client, ClientPlayerEntity player, int glowstoneSlot) {
         Vec3d look = player.getRotationVec(1.0F);
         Vec3d pos = player.getPos().add(look.x, 0, look.z).normalize().multiply(1.5).add(player.getPos());
         BlockPos bp = BlockPos.ofFloored(pos.add(0, -1, 0));
-
         try {
             if (client.world.getBlockState(bp).isReplaceable()) {
                 int prev = player.getInventory().selectedSlot;
                 selectSlot(player, glowstoneSlot);
-
                 BlockHitResult bhr = new BlockHitResult(player.getPos(), Direction.UP, bp, false);
                 client.interactionManager.interactBlock(player, Hand.MAIN_HAND, bhr);
-
                 selectSlot(player, prev);
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
     }
-                                                                       }
+        }
