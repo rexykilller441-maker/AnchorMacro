@@ -8,38 +8,41 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Simple JSON-backed config stored in config/anchormacro.json
- */
 public class AnchorMacroConfig {
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("anchormacro.json");
     private static AnchorMacroConfig INSTANCE;
 
-    // hotbar slots 0..8
-    public int anchorSlot = 0;
-    public int glowstoneSlot = 1;
-    public int totemSlot = 8;
+    // GUI-exposed slot values: 1..9 (users), internally converted to 0..8
+    public int anchorSlot = 1;
+    public int glowstoneSlot = 2;
+    public int totemSlot = 9;
 
-    // delays (in ticks). 1 tick = 50 ms
+    // delays in ticks (1 tick = 50 ms)
     public int delayPlaceAnchor = 4;
     public int delaySwitchToGlowstone = 2;
     public int delayChargeAnchor = 3;
     public int delaySwitchToTotem = 2;
     public int delayExplodeAnchor = 2;
 
-    // safety & explosion behavior
-    public boolean safeAnchorMode = false; // place glowstone in front after charging
+    // flags
+    public boolean safeAnchorMode = false;
     public boolean explodeOnlyIfTotemPresent = false;
-
+    public boolean autoSearchHotbar = true;
     public boolean showNotifications = true;
+
+    // test key (GLFW key code)
+    public int testKey = org.lwjgl.glfw.GLFW.GLFW_KEY_K;
 
     private AnchorMacroConfig() {}
 
     public static AnchorMacroConfig get() {
-        if (INSTANCE == null) {
-            INSTANCE = load();
-        }
+        if (INSTANCE == null) INSTANCE = load();
         return INSTANCE;
+    }
+
+    public static void reload() {
+        INSTANCE = null;
+        get();
     }
 
     private static AnchorMacroConfig load() {
@@ -51,13 +54,12 @@ public class AnchorMacroConfig {
                 if (cfg == null) throw new IOException("Invalid config JSON, using defaults.");
                 return cfg;
             } else {
-                AnchorMacroConfig defaultCfg = new AnchorMacroConfig();
-                saveStatic(defaultCfg, gson);
-                return defaultCfg;
+                AnchorMacroConfig def = new AnchorMacroConfig();
+                saveStatic(def, gson);
+                return def;
             }
         } catch (Exception e) {
-            // fallback to defaults if anything fails
-            AnchorMacroClient.log("Failed to load config, using defaults: " + e.getMessage());
+            AnchorMacroClient.log("Failed to load config: " + e.getMessage());
             AnchorMacroConfig def = new AnchorMacroConfig();
             try { saveStatic(def, gson); } catch (Exception ignored) {}
             return def;
@@ -80,7 +82,6 @@ public class AnchorMacroConfig {
         Files.writeString(CONFIG_PATH, json);
     }
 
-    // utility to reset to defaults
     public void resetToDefaults() {
         AnchorMacroConfig def = new AnchorMacroConfig();
         this.anchorSlot = def.anchorSlot;
@@ -93,17 +94,16 @@ public class AnchorMacroConfig {
         this.delayExplodeAnchor = def.delayExplodeAnchor;
         this.safeAnchorMode = def.safeAnchorMode;
         this.explodeOnlyIfTotemPresent = def.explodeOnlyIfTotemPresent;
+        this.autoSearchHotbar = def.autoSearchHotbar;
         this.showNotifications = def.showNotifications;
+        this.testKey = def.testKey;
     }
 
-    /** Reloads the configuration from disk safely */
-    public static void reload() {
-        try {
-            AnchorMacroConfig newCfg = load();
-            INSTANCE = newCfg;
-            AnchorMacroClient.log("Config reloaded successfully.");
-        } catch (Exception e) {
-            AnchorMacroClient.log("Failed to reload config, keeping old settings: " + e.getMessage());
-        }
+    // convenience: convert GUI slot (1..9) to internal index (0..8)
+    public static int guiToInternalSlot(int guiSlot) {
+        int s = guiSlot - 1;
+        if (s < 0) s = 0;
+        if (s > 8) s = 8;
+        return s;
     }
 }
