@@ -3,14 +3,13 @@ package com.anchormacro;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
 
 public class AnchorMacroConfigScreen extends Screen {
     private final Screen parent;
     private final AnchorMacroConfig cfg;
-
-    private int centerX;
-    private int startY;
+    private final int UI_WIDTH = 280; // cap for Zalith
 
     protected AnchorMacroConfigScreen(Screen parent) {
         super(Text.literal("Anchor Macro Settings"));
@@ -20,104 +19,112 @@ public class AnchorMacroConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        centerX = this.width / 2;
-        startY = 30;
-        int y = startY;
-        int spacing = 22;
+        int centerX = this.width / 2;
+        int left = centerX - (UI_WIDTH / 2);
+        int y = 20;
+        int spacing = 26;
 
-        // === Delays ===
-        addDelayControl("Place Anchor delay", y, () -> cfg.delayPlaceAnchor, v -> cfg.delayPlaceAnchor = v);
+        // Title label (disabled button)
+        ButtonWidget title = ButtonWidget.builder(Text.literal("Anchor Macro Settings"), b -> {})
+                .position(left, y).size(UI_WIDTH, 20).build();
+        title.active = false;
+        this.addDrawableChild(title);
         y += spacing;
-        addDelayControl("Switch → Glowstone delay", y, () -> cfg.delaySwitchToGlowstone, v -> cfg.delaySwitchToGlowstone = v);
+
+        // Delays - sliders (value 0..200 ticks)
+        addIntSlider(left, y, "Place Anchor delay (ticks)", cfg.delayPlaceAnchor, 0, 200, val -> cfg.delayPlaceAnchor = val);
         y += spacing;
-        addDelayControl("Charge Anchor delay", y, () -> cfg.delayChargeAnchor, v -> cfg.delayChargeAnchor = v);
+        addIntSlider(left, y, "Switch → Glowstone delay (ticks)", cfg.delaySwitchToGlowstone, 0, 200, val -> cfg.delaySwitchToGlowstone = val);
         y += spacing;
-        addDelayControl("Switch → Totem delay", y, () -> cfg.delaySwitchToTotem, v -> cfg.delaySwitchToTotem = v);
+        addIntSlider(left, y, "Charge Anchor delay (ticks)", cfg.delayChargeAnchor, 0, 200, val -> cfg.delayChargeAnchor = val);
         y += spacing;
-        addDelayControl("Explode Anchor delay", y, () -> cfg.delayExplodeAnchor, v -> cfg.delayExplodeAnchor = v);
+        addIntSlider(left, y, "Switch → Totem delay (ticks)", cfg.delaySwitchToTotem, 0, 200, val -> cfg.delaySwitchToTotem = val);
+        y += spacing;
+        addIntSlider(left, y, "Explode Anchor delay (ticks)", cfg.delayExplodeAnchor, 0, 200, val -> cfg.delayExplodeAnchor = val);
         y += spacing + 6;
 
-        // === Slots ===
-        addSlotControl("Anchor slot (0-8)", y, () -> cfg.anchorSlot, v -> cfg.anchorSlot = v);
+        // Slots - sliders 1..9
+        addIntSlider(left, y, "Anchor slot (1-9)", cfg.anchorSlot, 1, 9, val -> cfg.anchorSlot = val);
         y += spacing;
-        addSlotControl("Glowstone slot (0-8)", y, () -> cfg.glowstoneSlot, v -> cfg.glowstoneSlot = v);
+        addIntSlider(left, y, "Glowstone slot (1-9)", cfg.glowstoneSlot, 1, 9, val -> cfg.glowstoneSlot = val);
         y += spacing;
-        addSlotControl("Totem slot (0-8)", y, () -> cfg.totemSlot, v -> cfg.totemSlot = v);
+        addIntSlider(left, y, "Totem slot (1-9)", cfg.totemSlot, 1, 9, val -> cfg.totemSlot = val);
         y += spacing + 6;
 
-        // === Toggles ===
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Safe Anchor Mode: " + (cfg.safeAnchorMode ? "ON" : "OFF")),
-                b -> { cfg.safeAnchorMode = !cfg.safeAnchorMode; init(); })
-                .position(centerX - 120, y)
-                .size(230, 20)
-                .build());
+        // Toggles
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Safe Anchor Mode: " + (cfg.safeAnchorMode ? "ON" : "OFF")), b -> {
+            cfg.safeAnchorMode = !cfg.safeAnchorMode;
+            init();
+        }).position(left, y).size(UI_WIDTH, 20).build());
         y += spacing;
 
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Explode only if totem present: " + (cfg.explodeOnlyIfTotemPresent ? "YES" : "NO")),
-                b -> { cfg.explodeOnlyIfTotemPresent = !cfg.explodeOnlyIfTotemPresent; init(); })
-                .position(centerX - 120, y)
-                .size(230, 20)
-                .build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Explode only if totem present: " + (cfg.explodeOnlyIfTotemPresent ? "YES" : "NO")), b -> {
+            cfg.explodeOnlyIfTotemPresent = !cfg.explodeOnlyIfTotemPresent;
+            init();
+        }).position(left, y).size(UI_WIDTH, 20).build());
         y += spacing;
 
-        // === Bottom buttons ===
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Auto-search hotbar (1-9): " + (cfg.autoSearchHotbar ? "YES" : "NO")), b -> {
+            cfg.autoSearchHotbar = !cfg.autoSearchHotbar;
+            init();
+        }).position(left, y).size(UI_WIDTH, 20).build());
+        y += spacing;
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Show notifications: " + (cfg.showNotifications ? "YES" : "NO")), b -> {
+            cfg.showNotifications = !cfg.showNotifications;
+            init();
+        }).position(left, y).size(UI_WIDTH, 20).build());
+        y += spacing + 6;
+
+        // Save / Cancel / Reset
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Save"), b -> {
             cfg.save();
             this.close();
-        }).position(centerX - 100, height - 40).size(80, 20).build());
+        }).position(left + 10, this.height - 36).size(80, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Cancel"), b -> {
             AnchorMacroConfig.reload();
             this.close();
-        }).position(centerX - 5, height - 40).size(80, 20).build());
+        }).position(left + 105, this.height - 36).size(80, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Reset"), b -> {
             cfg.resetToDefaults();
             init();
-        }).position(centerX + 90, height - 40).size(80, 20).build());
+        }).position(left + 200, this.height - 36).size(70, 20).build());
     }
 
-    private void addDelayControl(String label, int y, SupplierInt getter, ConsumerInt setter) {
-        int val = getter.get();
-        this.addDrawableChild(makeLabel(centerX - 120, y, label + ": " + val + "t"));
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("-"), b -> {
-            setter.accept(Math.max(0, val - 1)); init();
-        }).position(centerX + 40, y - 6).size(20, 20).build());
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("+"), b -> {
-            setter.accept(Math.min(200, val + 1)); init();
-        }).position(centerX + 65, y - 6).size(20, 20).build());
-    }
+    private void addIntSlider(int left, int y, String label, int value, int min, int max, java.util.function.IntConsumer setter) {
+        // label
+        ButtonWidget lbl = ButtonWidget.builder(Text.literal(label + ": " + value), b -> {}).position(left, y).size(UI_WIDTH, 20).build();
+        lbl.active = false;
+        this.addDrawableChild(lbl);
 
-    private void addSlotControl(String label, int y, SupplierInt getter, ConsumerInt setter) {
-        int val = getter.get();
-        this.addDrawableChild(makeLabel(centerX - 120, y, label + ": " + val));
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("-"), b -> {
-            setter.accept(clampSlot(val - 1)); init();
-        }).position(centerX + 40, y - 6).size(20, 20).build());
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("+"), b -> {
-            setter.accept(clampSlot(val + 1)); init();
-        }).position(centerX + 65, y - 6).size(20, 20).build());
-    }
-
-    private ButtonWidget makeLabel(int x, int y, String text) {
-        ButtonWidget b = ButtonWidget.builder(Text.literal(text), btn -> {})
-                .position(x, y)
-                .size(230, 20)
-                .build();
-        b.active = false;
-        return b;
-    }
-
-    private int clampSlot(int v) {
-        return Math.max(0, Math.min(8, v));
+        // slider (subclass)
+        double normalized = (double)(value - min) / (double)Math.max(1, (max - min));
+        SliderWidget slider = new SliderWidget(left, y + 18, UI_WIDTH, 10, Text.literal(""), normalized) {
+            private int lastInt = value;
+            @Override protected void applyValue() {
+                double val = this.value;
+                int intVal = min + (int)Math.round(val * (max - min));
+                if (intVal != lastInt) {
+                    lastInt = intVal;
+                    setter.accept(intVal);
+                    // update label text
+                    lbl.setMessage(Text.literal(label + ": " + intVal));
+                }
+            }
+            @Override public Text getMessage() {
+                int intVal = min + (int)Math.round(this.value * (max - min));
+                return Text.literal(String.valueOf(intVal));
+            }
+        };
+        slider.setValue(normalized);
+        this.addDrawableChild(slider);
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 10, 0xFFFFFF);
         super.render(context, mouseX, mouseY, delta);
     }
 
@@ -125,7 +132,4 @@ public class AnchorMacroConfigScreen extends Screen {
     public void close() {
         this.client.setScreen(parent);
     }
-
-    @FunctionalInterface private interface SupplierInt { int get(); }
-    @FunctionalInterface private interface ConsumerInt { void accept(int v); }
-}
+                                                   }
