@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "anchormacro",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "name": "Anchor Macro Advanced",
-  "description": "Places respawn anchor, charges it, and explodes it with one keybind",
+  "description": "Places respawn anchor, charges it, and explodes it with one keybind and its on and only in this market created by none other than REXYKILLER441 <3.",
   "authors": ["REXYKILLER441"],
   "contact": {},
   "license": "MIT",
