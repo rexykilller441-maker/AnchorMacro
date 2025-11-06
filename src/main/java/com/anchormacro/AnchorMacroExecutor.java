@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class AnchorMacroExecutor {
     private static final AtomicBoolean running = new AtomicBoolean(false);
-    private static ClientTickEvents.EndTick activeHandler;
+    private static ClientTickEvents.EndTick handlerRef;
     private static int step = 0;
     private static int tickCounter = 0;
 
@@ -68,18 +68,16 @@ public class AnchorMacroExecutor {
         step = 1;
         tickCounter = 0;
 
-        // remove old handler if any
-        if (activeHandler != null)
-            ClientTickEvents.END_CLIENT_TICK.unregister(activeHandler);
+        // remove previous listener safely
+        if (handlerRef != null) ClientTickEvents.END_CLIENT_TICK.unregister(handlerRef);
 
-        activeHandler = mc -> {
+        handlerRef = mc -> {
             if (!running.get()) return;
             ClientPlayerEntity p = mc.player;
             if (p == null) {
                 stop();
                 return;
             }
-
             tickCounter++;
 
             try {
@@ -139,14 +137,13 @@ public class AnchorMacroExecutor {
             }
         };
 
-        ClientTickEvents.END_CLIENT_TICK.register(activeHandler);
+        // register and keep handle
+        ClientTickEvents.END_CLIENT_TICK.register(handlerRef);
     }
 
     private static void stop() {
         running.set(false);
-        if (activeHandler != null)
-            ClientTickEvents.END_CLIENT_TICK.unregister(activeHandler);
-        activeHandler = null;
+        handlerRef = null;
     }
 
     private static int findHotbarSlotFor(ClientPlayerEntity player, net.minecraft.item.Item item, int preferredSlot) {
@@ -201,4 +198,4 @@ public class AnchorMacroExecutor {
             }
         } catch (Exception ignored) {}
     }
-        }
+}
