@@ -12,14 +12,8 @@ import net.minecraft.world.RaycastContext;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Handles the full automation sequence.
- * Supports auto-search (hotbar only) and safe anchor mode.
- * Automatically unregisters its tick listener at end to prevent freeze.
- */
 public class AnchorMacroExecutor {
     private static final AtomicBoolean running = new AtomicBoolean(false);
-    private static ClientTickEvents.EndTick handlerRef;
     private static int step = 0;
     private static int tickCounter = 0;
 
@@ -68,14 +62,12 @@ public class AnchorMacroExecutor {
         step = 1;
         tickCounter = 0;
 
-        // remove previous listener safely
-        if (handlerRef != null) ClientTickEvents.END_CLIENT_TICK.unregister(handlerRef);
-
-        handlerRef = mc -> {
+        // Single listener that exits automatically when running becomes false
+        ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             if (!running.get()) return;
             ClientPlayerEntity p = mc.player;
             if (p == null) {
-                stop();
+                running.set(false);
                 return;
             }
             tickCounter++;
@@ -124,26 +116,18 @@ public class AnchorMacroExecutor {
                             if (cfg.explodeOnlyIfTotemPresent && !hasTotem) {
                                 if (cfg.showNotifications)
                                     p.sendMessage(net.minecraft.text.Text.literal("§cTotem missing — skipped explosion."), false);
-                                stop();
+                                running.set(false);
                                 return;
                             }
                             rightClick(mc, p);
-                            stop();
+                            running.set(false);
                         }
                     }
                 }
             } catch (Exception ignored) {
-                stop();
+                running.set(false);
             }
-        };
-
-        // register and keep handle
-        ClientTickEvents.END_CLIENT_TICK.register(handlerRef);
-    }
-
-    private static void stop() {
-        running.set(false);
-        handlerRef = null;
+        });
     }
 
     private static int findHotbarSlotFor(ClientPlayerEntity player, net.minecraft.item.Item item, int preferredSlot) {
@@ -198,4 +182,4 @@ public class AnchorMacroExecutor {
             }
         } catch (Exception ignored) {}
     }
-}
+                }
