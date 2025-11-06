@@ -15,6 +15,9 @@ repositories {
     // Main Fabric Maven
     maven { url = 'https://maven.fabricmc.net/' }
 
+    // ModMenu Maven
+    maven { url = 'https://maven.terraformersmc.com/releases/' }
+
     // Backup mirrors (for Fabric API downtime)
     maven { url = 'https://maven.minecraftforge.net' }
     maven { url = 'https://jitpack.io' }
@@ -31,6 +34,9 @@ dependencies {
     // Fabric Loader & API
     modImplementation "net.fabricmc:fabric-loader:0.15.11"
     modImplementation "net.fabricmc.fabric-api:fabric-api:0.100.1+1.21"
+
+    // ✅ ModMenu integration (for in-game config)
+    modImplementation "com.terraformersmc:modmenu:11.0.1"
 
     // ✅ Gson for JSON config
     implementation "com.google.code.gson:gson:2.10.1"
