@@ -5,15 +5,12 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
-/**
- * Central keybind registration
- */
 public class AnchorMacroKeybinds {
     public static KeyBinding executeKey;
     public static KeyBinding openConfigKey;
+    public static KeyBinding testKey;
 
     public static void register() {
-        // keep original execute key as grave accent default
         executeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.anchormacro.execute",
                 InputUtil.Type.KEYSYM,
@@ -24,7 +21,15 @@ public class AnchorMacroKeybinds {
         openConfigKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.anchormacro.open_settings",
                 InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_O, // default 'O' to open settings
+                GLFW.GLFW_KEY_O,
+                "category.anchormacro.main"
+        ));
+
+        // testKey default comes from config; register a default now (will be overridden on load)
+        testKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.anchormacro.test",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_K,
                 "category.anchormacro.main"
         ));
     }
