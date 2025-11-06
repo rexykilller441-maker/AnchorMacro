@@ -26,19 +26,23 @@ public class AnchorMacroExecutor {
         ClientPlayerEntity player = client.player;
         if (player == null) return;
 
-        AnchorMacroConfig cfg = AnchorMacroConfig.get();
+        final AnchorMacroConfig cfg = AnchorMacroConfig.get();
 
-        // Resolve internal slots
-        int anchorSlot = AnchorMacroConfig.guiToInternalSlot(cfg.anchorSlot);
-        int glowstoneSlot = AnchorMacroConfig.guiToInternalSlot(cfg.glowstoneSlot);
-        int totemSlot = AnchorMacroConfig.guiToInternalSlot(cfg.totemSlot);
+        // Resolve internal slots (gui 1..9 -> internal 0..8)
+        int aSlot = AnchorMacroConfig.guiToInternalSlot(cfg.anchorSlot);
+        int gSlot = AnchorMacroConfig.guiToInternalSlot(cfg.glowstoneSlot);
+        int tSlot = AnchorMacroConfig.guiToInternalSlot(cfg.totemSlot);
 
         // Auto-search hotbar (1–9)
         if (cfg.autoSearchHotbar) {
-            anchorSlot = findHotbarSlotFor(player, Items.RESPAWN_ANCHOR, anchorSlot);
-            glowstoneSlot = findHotbarSlotFor(player, Items.GLOWSTONE, glowstoneSlot);
-            totemSlot = findHotbarSlotFor(player, Items.TOTEM_OF_UNDYING, totemSlot);
+            aSlot = findHotbarSlotFor(player, Items.RESPAWN_ANCHOR, aSlot);
+            gSlot = findHotbarSlotFor(player, Items.GLOWSTONE, gSlot);
+            tSlot = findHotbarSlotFor(player, Items.TOTEM_OF_UNDYING, tSlot);
         }
+
+        final int anchorSlot = aSlot;
+        final int glowstoneSlot = gSlot;
+        final int totemSlot = tSlot;
 
         // Validate presence
         if (!player.getInventory().getStack(anchorSlot).isOf(Items.RESPAWN_ANCHOR)) {
@@ -228,4 +232,4 @@ public class AnchorMacroExecutor {
         } catch (Exception ignored) {
         }
     }
-            }
+                                                                       }
