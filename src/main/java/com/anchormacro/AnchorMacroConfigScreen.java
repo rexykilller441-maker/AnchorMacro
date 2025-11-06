@@ -9,7 +9,7 @@ import net.minecraft.text.Text;
 public class AnchorMacroConfigScreen extends Screen {
     private final Screen parent;
     private final AnchorMacroConfig cfg;
-    private final int UI_WIDTH = 280; // cap for Zalith
+    private final int UI_WIDTH = 280; // capped width for Zalith launcher
 
     protected AnchorMacroConfigScreen(Screen parent) {
         super(Text.literal("Anchor Macro Settings"));
@@ -24,14 +24,14 @@ public class AnchorMacroConfigScreen extends Screen {
         int y = 20;
         int spacing = 26;
 
-        // Title label (disabled button)
+        // Title
         ButtonWidget title = ButtonWidget.builder(Text.literal("Anchor Macro Settings"), b -> {})
                 .position(left, y).size(UI_WIDTH, 20).build();
         title.active = false;
         this.addDrawableChild(title);
         y += spacing;
 
-        // Delays - sliders (value 0..200 ticks)
+        // === Delay sliders ===
         addIntSlider(left, y, "Place Anchor delay (ticks)", cfg.delayPlaceAnchor, 0, 200, val -> cfg.delayPlaceAnchor = val);
         y += spacing;
         addIntSlider(left, y, "Switch → Glowstone delay (ticks)", cfg.delaySwitchToGlowstone, 0, 200, val -> cfg.delaySwitchToGlowstone = val);
@@ -43,7 +43,7 @@ public class AnchorMacroConfigScreen extends Screen {
         addIntSlider(left, y, "Explode Anchor delay (ticks)", cfg.delayExplodeAnchor, 0, 200, val -> cfg.delayExplodeAnchor = val);
         y += spacing + 6;
 
-        // Slots - sliders 1..9
+        // === Slot sliders ===
         addIntSlider(left, y, "Anchor slot (1-9)", cfg.anchorSlot, 1, 9, val -> cfg.anchorSlot = val);
         y += spacing;
         addIntSlider(left, y, "Glowstone slot (1-9)", cfg.glowstoneSlot, 1, 9, val -> cfg.glowstoneSlot = val);
@@ -51,7 +51,7 @@ public class AnchorMacroConfigScreen extends Screen {
         addIntSlider(left, y, "Totem slot (1-9)", cfg.totemSlot, 1, 9, val -> cfg.totemSlot = val);
         y += spacing + 6;
 
-        // Toggles
+        // === Toggles ===
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Safe Anchor Mode: " + (cfg.safeAnchorMode ? "ON" : "OFF")), b -> {
             cfg.safeAnchorMode = !cfg.safeAnchorMode;
             init();
@@ -64,7 +64,7 @@ public class AnchorMacroConfigScreen extends Screen {
         }).position(left, y).size(UI_WIDTH, 20).build());
         y += spacing;
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Auto-search hotbar (1-9): " + (cfg.autoSearchHotbar ? "YES" : "NO")), b -> {
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Auto-search hotbar (1–9): " + (cfg.autoSearchHotbar ? "YES" : "NO")), b -> {
             cfg.autoSearchHotbar = !cfg.autoSearchHotbar;
             init();
         }).position(left, y).size(UI_WIDTH, 20).build());
@@ -76,7 +76,7 @@ public class AnchorMacroConfigScreen extends Screen {
         }).position(left, y).size(UI_WIDTH, 20).build());
         y += spacing + 6;
 
-        // Save / Cancel / Reset
+        // === Save / Cancel / Reset buttons ===
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Save"), b -> {
             cfg.save();
             this.close();
@@ -94,31 +94,33 @@ public class AnchorMacroConfigScreen extends Screen {
     }
 
     private void addIntSlider(int left, int y, String label, int value, int min, int max, java.util.function.IntConsumer setter) {
-        // label
+        // Label
         ButtonWidget lbl = ButtonWidget.builder(Text.literal(label + ": " + value), b -> {}).position(left, y).size(UI_WIDTH, 20).build();
         lbl.active = false;
         this.addDrawableChild(lbl);
 
-        // slider (subclass)
         double normalized = (double)(value - min) / (double)Math.max(1, (max - min));
-        SliderWidget slider = new SliderWidget(left, y + 18, UI_WIDTH, 10, Text.literal(""), normalized) {
-            private int lastInt = value;
-            @Override protected void applyValue() {
-                double val = this.value;
-                int intVal = min + (int)Math.round(val * (max - min));
+        SliderWidget slider = new SliderWidget(left, y + 18, UI_WIDTH, 10, Text.literal(String.valueOf(value)), normalized) {
+            private int lastInt = (int) value;
+
+            @Override
+            protected void applyValue() {
+                int intVal = min + (int)Math.round(this.value * (max - min));
                 if (intVal != lastInt) {
                     lastInt = intVal;
                     setter.accept(intVal);
-                    // update label text
                     lbl.setMessage(Text.literal(label + ": " + intVal));
                 }
             }
-            @Override public Text getMessage() {
+
+            @Override
+            protected void updateMessage() {
                 int intVal = min + (int)Math.round(this.value * (max - min));
-                return Text.literal(String.valueOf(intVal));
+                this.setMessage(Text.literal(String.valueOf(intVal)));
             }
         };
-        slider.setValue(normalized);
+
+        slider.value = normalized;
         this.addDrawableChild(slider);
     }
 
@@ -132,4 +134,4 @@ public class AnchorMacroConfigScreen extends Screen {
     public void close() {
         this.client.setScreen(parent);
     }
-                                                   }
+}
