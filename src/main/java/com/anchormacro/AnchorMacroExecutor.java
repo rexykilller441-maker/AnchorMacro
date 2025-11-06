@@ -13,7 +13,8 @@ import net.minecraft.world.RaycastContext;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Executor honours config. Uses hotbar-only auto-search (1..9 -> 0..8).
+ * Handles the full automation sequence.
+ * Supports auto-search (hotbar only) and safe anchor mode.
  */
 public class AnchorMacroExecutor {
     private static final AtomicBoolean running = new AtomicBoolean(false);
@@ -22,7 +23,6 @@ public class AnchorMacroExecutor {
 
     public static void execute(MinecraftClient client) {
         if (running.get()) return; // already running
-
         ClientPlayerEntity player = client.player;
         if (player == null) return;
 
@@ -33,31 +33,35 @@ public class AnchorMacroExecutor {
         int glowstoneSlot = AnchorMacroConfig.guiToInternalSlot(cfg.glowstoneSlot);
         int totemSlot = AnchorMacroConfig.guiToInternalSlot(cfg.totemSlot);
 
-        // Helper: attempt to find item in hotbar if auto-search enabled
+        // Auto-search hotbar (1–9)
         if (cfg.autoSearchHotbar) {
             anchorSlot = findHotbarSlotFor(player, Items.RESPAWN_ANCHOR, anchorSlot);
             glowstoneSlot = findHotbarSlotFor(player, Items.GLOWSTONE, glowstoneSlot);
             totemSlot = findHotbarSlotFor(player, Items.TOTEM_OF_UNDYING, totemSlot);
         }
 
-        // Validate presence according to explode-only-if-totemPresent
+        // Validate presence
         if (!player.getInventory().getStack(anchorSlot).isOf(Items.RESPAWN_ANCHOR)) {
-            if (cfg.showNotifications) player.sendMessage(net.minecraft.text.Text.literal("§cAnchor not found in hotbar!"), false);
+            if (cfg.showNotifications)
+                player.sendMessage(net.minecraft.text.Text.literal("§cAnchor not found in hotbar!"), false);
             return;
         }
         if (!player.getInventory().getStack(glowstoneSlot).isOf(Items.GLOWSTONE)) {
-            if (cfg.showNotifications) player.sendMessage(net.minecraft.text.Text.literal("§cGlowstone not found in hotbar!"), false);
+            if (cfg.showNotifications)
+                player.sendMessage(net.minecraft.text.Text.literal("§cGlowstone not found in hotbar!"), false);
             return;
         }
         if (cfg.explodeOnlyIfTotemPresent) {
-            boolean totemPresent = player.getInventory().getStack(totemSlot).isOf(Items.TOTEM_OF_UNDYING) || player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING);
-            if (!totemPresent) {
-                if (cfg.showNotifications) player.sendMessage(net.minecraft.text.Text.literal("§cTotem not found in hotbar/offhand — aborting explosion."), false);
+            boolean hasTotem = player.getInventory().getStack(totemSlot).isOf(Items.TOTEM_OF_UNDYING)
+                    || player.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING);
+            if (!hasTotem) {
+                if (cfg.showNotifications)
+                    player.sendMessage(net.minecraft.text.Text.literal("§cTotem not found in hotbar/offhand — aborting explosion."), false);
                 return;
             }
         }
 
-        // Start sequence
+        // Start macro
         running.set(true);
         step = 1;
         tickCounter = 0;
@@ -71,6 +75,7 @@ public class AnchorMacroExecutor {
                     running.set(false);
                     return;
                 }
+
                 tickCounter++;
 
                 switch (step) {
@@ -82,6 +87,7 @@ public class AnchorMacroExecutor {
                             tickCounter = 0;
                         }
                         break;
+
                     case 2:
                         if (tickCounter >= cfg.delaySwitchToGlowstone) {
                             selectSlot(p, glowstoneSlot);
@@ -89,6 +95,7 @@ public class AnchorMacroExecutor {
                             tickCounter = 0;
                         }
                         break;
+
                     case 3:
                         if (tickCounter >= cfg.delayChargeAnchor) {
                             rightClick(mc, p);
@@ -96,6 +103,7 @@ public class AnchorMacroExecutor {
                             tickCounter = 0;
                         }
                         break;
+
                     case 4:
                         if (cfg.safeAnchorMode) {
                             if (tickCounter >= 1) {
@@ -111,24 +119,29 @@ public class AnchorMacroExecutor {
                             }
                         }
                         break;
+
                     case 5:
-                        // ensure totem selected
                         if (tickCounter >= cfg.delaySwitchToTotem) {
                             selectSlot(p, AnchorMacroConfig.guiToInternalSlot(cfg.totemSlot));
                             tickCounter = 0;
                         }
+
                         if (tickCounter >= cfg.delayExplodeAnchor) {
                             boolean hasTotem = p.getInventory().getStack(AnchorMacroConfig.guiToInternalSlot(cfg.totemSlot)).isOf(Items.TOTEM_OF_UNDYING)
                                     || p.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING);
+
                             if (cfg.explodeOnlyIfTotemPresent && !hasTotem) {
-                                if (cfg.showNotifications) p.sendMessage(net.minecraft.text.Text.literal("§cTotem missing — skipped explosion."), false);
+                                if (cfg.showNotifications)
+                                    p.sendMessage(net.minecraft.text.Text.literal("§cTotem missing — skipped explosion."), false);
                                 running.set(false);
                                 return;
                             }
-                            rightClick(mc, p); // attempt the explosion
+
+                            rightClick(mc, p);
                             running.set(false);
                         }
                         break;
+
                     default:
                         running.set(false);
                         break;
@@ -137,17 +150,15 @@ public class AnchorMacroExecutor {
         });
     }
 
-    // find hotbar slot containing item, prefer preferredSlot; returns internal 0..8 slot
     private static int findHotbarSlotFor(ClientPlayerEntity player, net.minecraft.item.Item item, int preferredSlot) {
-        // if preferred slot already has it, return it
         ItemStack pref = player.getInventory().getStack(preferredSlot);
         if (pref != null && pref.getItem() == item) return preferredSlot;
-        // search hotbar 0..8
+
         for (int i = 0; i < 9; i++) {
             ItemStack s = player.getInventory().getStack(i);
             if (s != null && s.getItem() == item) return i;
         }
-        // not found — return preferredSlot (may be wrong but caller handles notification)
+
         return preferredSlot;
     }
 
@@ -158,22 +169,40 @@ public class AnchorMacroExecutor {
 
     private static void placeBlock(MinecraftClient client, ClientPlayerEntity player) {
         if (client.interactionManager == null) return;
+
         Vec3d start = player.getEyePos();
         Vec3d look = player.getRotationVec(1.0F);
         Vec3d end = start.add(look.multiply(5.0));
-        BlockHitResult hit = client.world.raycast(new RaycastContext(start, end, RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, player));
+
+        BlockHitResult hit = client.world.raycast(new RaycastContext(
+                start, end,
+                RaycastContext.ShapeType.OUTLINE,
+                RaycastContext.FluidHandling.NONE,
+                player
+        ));
+
         if (hit == null) {
-            hit = new BlockHitResult(player.getPos(), Direction.UP, BlockPos.ofFloored(player.getPos().add(0, -1, 0)), false);
+            hit = new BlockHitResult(player.getPos(), Direction.UP,
+                    BlockPos.ofFloored(player.getPos().add(0, -1, 0)), false);
         }
+
         client.interactionManager.interactBlock(player, Hand.MAIN_HAND, hit);
     }
 
     private static void rightClick(MinecraftClient client, ClientPlayerEntity player) {
         if (client.interactionManager == null) return;
+
         Vec3d start = player.getEyePos();
         Vec3d look = player.getRotationVec(1.0F);
         Vec3d end = start.add(look.multiply(5.0));
-        BlockHitResult hit = client.world.raycast(new RaycastContext(start, end, RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, player));
+
+        BlockHitResult hit = client.world.raycast(new RaycastContext(
+                start, end,
+                RaycastContext.ShapeType.OUTLINE,
+                RaycastContext.FluidHandling.NONE,
+                player
+        ));
+
         if (hit != null) {
             client.interactionManager.interactBlock(player, Hand.MAIN_HAND, hit);
         } else {
@@ -185,16 +214,18 @@ public class AnchorMacroExecutor {
         Vec3d look = player.getRotationVec(1.0F);
         Vec3d pos = player.getPos().add(look.x, 0, look.z).normalize().multiply(1.5).add(player.getPos());
         BlockPos bp = BlockPos.ofFloored(pos.add(0, -1, 0));
+
         try {
-            if (client.world.getBlockState(bp).getMaterial().isReplaceable()) {
+            if (client.world.getBlockState(bp).isReplaceable()) {
                 int prev = player.getInventory().selectedSlot;
                 selectSlot(player, glowstoneSlot);
+
                 BlockHitResult bhr = new BlockHitResult(player.getPos(), Direction.UP, bp, false);
                 client.interactionManager.interactBlock(player, Hand.MAIN_HAND, bhr);
+
                 selectSlot(player, prev);
             }
         } catch (Exception ignored) {
-            // fallback: do nothing
         }
     }
-}
+            }
