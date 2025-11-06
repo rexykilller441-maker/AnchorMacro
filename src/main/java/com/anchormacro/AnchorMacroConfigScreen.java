@@ -120,7 +120,7 @@ public class AnchorMacroConfigScreen extends Screen {
             }
         };
 
-        slider.value = normalized;
+        // constructor already sets the initial value; no direct assignment to slider.value
         this.addDrawableChild(slider);
     }
 
@@ -134,4 +134,4 @@ public class AnchorMacroConfigScreen extends Screen {
     public void close() {
         this.client.setScreen(parent);
     }
-}
+                              }
