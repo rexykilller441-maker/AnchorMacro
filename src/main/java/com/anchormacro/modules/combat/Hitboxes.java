@@ -2,30 +2,24 @@ package com.anchormacro.modules.combat;
 
 import com.anchormacro.modules.Module;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.EndCrystalEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.client.render.debug.DebugRenderer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.item.SwordItem;
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
+import net.minecraft.util.Hand;
 
 /**
- * Hitboxes renderer module. Simple debug-box rendering around entities.
+ * TotemHit: when enabled and you are holding a Totem in main hand and you attack a player,
+ * temporarily switch to a sword in hotbar and send an attack packet so the server applies sword knockback.
  */
-public class Hitboxes implements Module {
+public class TotemHit implements Module {
     private static final MinecraftClient mc = MinecraftClient.getInstance();
-
-    public boolean expandPlayers = true;
-    public boolean expandCrystals = true;
-    public boolean render = true;
-    public float expand = 0.5f;
-    public float distance = 10f;
-
     private boolean enabled = true;
 
     @Override
-    public String getName() { return "Hitbox"; }
+    public String getName() { return "TotemHit"; }
 
     @Override
     public boolean isEnabled() { return enabled; }
@@ -34,19 +28,26 @@ public class Hitboxes implements Module {
     public void setEnabled(boolean e) { enabled = e; }
 
     @Override
-    public void render(MatrixStack matrices) {
-        if (!enabled || !render || mc.world == null || mc.player == null) return;
+    public void onAttack(Entity target) {
+        if (!enabled) return;
+        if (!(target instanceof PlayerEntity)) return;
+        if (mc.player == null || mc.getNetworkHandler() == null) return;
 
-        Vec3d camPos = mc.gameRenderer.getCamera().getPos();
-        for (Entity entity : mc.world.getEntities()) {
-            if (entity == mc.player) continue;
-            if (entity instanceof PlayerEntity && !expandPlayers) continue;
-            if (entity instanceof EndCrystalEntity && !expandCrystals) continue;
-            if (entity.squaredDistanceTo(mc.player) > distance * distance) continue;
-
-            Box box = entity.getBoundingBox().expand(expand);
-            DebugRenderer.drawBox(box.expand(-camPos.x, -camPos.y, -camPos.z),
-                    1f, 0f, 0f, 0.5f);
+        ItemStack main = mc.player.getMainHandStack();
+        if (main.getItem() == Items.TOTEM_OF_UNDYING) {
+            // find sword in hotbar (0-8)
+            for (int i = 0; i < 9; ++i) {
+                ItemStack stack = mc.player.getInventory().getStack(i);
+                if (stack != null && stack.getItem() instanceof SwordItem) {
+                    int old = mc.player.getInventory().selectedSlot;
+                    mc.player.getInventory().selectedSlot = i;
+                    // send attack packet (server will treat us as holding a sword)
+                    mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                    mc.player.getInventory().selectedSlot = old;
+                    return;
+                }
+            }
         }
     }
 }
