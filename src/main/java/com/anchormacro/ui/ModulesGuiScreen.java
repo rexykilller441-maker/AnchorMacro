@@ -5,7 +5,7 @@ import com.anchormacro.modules.Module;
 import com.anchormacro.modules.ModuleManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.element.ButtonWidget;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
