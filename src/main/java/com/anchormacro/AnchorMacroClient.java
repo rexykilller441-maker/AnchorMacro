@@ -10,63 +10,64 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.lwjgl.glfw.GLFW;
 
-/**
- * AnchorMacroClient — main mod entry point.
- * Handles ticking and input for AnchorMacro + modules (AutoTotem, TotemHit, Hitboxes)
- */
 public class AnchorMacroClient implements ClientModInitializer {
     private static boolean prevLeft = false;
+    public static MinecraftClient mc;
 
     @Override
     public void onInitializeClient() {
-        System.out.println("[AnchorMacro] Client initialized ✅");
+        mc = MinecraftClient.getInstance();
+        AnchorMacroClient.log("[AnchorMacro] Client initialized");
 
+        // register tick
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player == null || client.world == null) return;
+            if (client == null || client.player == null) return;
 
-            // === Tick modules ===
-            ModuleManager.tickAll();
+            // tick modules
+            ModuleManager.tickAll(client);
 
-            // === Handle left-click attacks ===
-            handleAttackInput(client);
-        });
-    }
+            // left-click detection & expanded hitbox handling
+            long window = client.getWindow().getHandle();
+            boolean leftDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
 
-    private void handleAttackInput(MinecraftClient client) {
-        long window = client.getWindow().getHandle();
-        boolean leftDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+            if (leftDown && !prevLeft) {
+                Entity target = null;
 
-        // detect edge (pressed now, not previous)
-        if (leftDown && !prevLeft) {
-            Entity target = null;
+                // try expanded hitbox first if enabled
+                if (ModuleManager.hitboxes != null && ModuleManager.hitboxes.isEnabled()) {
+                    target = ModuleManager.hitboxes.expandedRaycastTarget(ModuleManager.hitboxes.distance);
+                }
 
-            // Try hitbox-expanded raycast if enabled
-            if (ModuleManager.hitboxes != null && ModuleManager.hitboxes.isEnabled()) {
-                target = ModuleManager.hitboxes.expandedRaycastTarget(ModuleManager.hitboxes.distance);
-            }
+                // fallback to vanilla crosshair entity
+                if (target == null) {
+                    HitResult hr = client.crosshairTarget;
+                    if (hr != null && hr.getType() == HitResult.Type.ENTITY) {
+                        target = ((EntityHitResult) hr).getEntity();
+                    }
+                }
 
-            // fallback to vanilla crosshair
-            if (target == null && client.crosshairTarget instanceof EntityHitResult ehr) {
-                target = ehr.getEntity();
-            }
-
-            if (target != null) {
-                // If TotemHit enabled, handle with sword-knockback logic
-                if (ModuleManager.totemHit.isEnabled()) {
-                    ModuleManager.onAttack(target);
-                } else {
-                    // send normal attack packet
-                    try {
-                        if (client.getNetworkHandler() != null) {
-                            client.getNetworkHandler().sendPacket(
-                                    PlayerInteractEntityC2SPacket.attack(target, client.player.isSneaking())
-                            );
-                        }
-                    } catch (Exception ignored) {}
+                if (target != null) {
+                    // If TotemHit enabled, let it handle switching + attack packet
+                    if (ModuleManager.totemHit != null && ModuleManager.totemHit.isEnabled()) {
+                        ModuleManager.totemHit.onAttack(target);
+                    } else {
+                        // send vanilla attack packet
+                        try {
+                            if (client.getNetworkHandler() != null) {
+                                client.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, client.player.isSneaking()));
+                            }
+                        } catch (Exception ignored) {}
+                    }
                 }
             }
-        }
 
-        prevLeft = leftDown;
+            prevLeft = leftDown;
+        });
+
+        // nothing to do for render stage here; modules can render themselves via ModuleManager.render if needed
+    }
+
+    public static void log(String s) {
+        System.out.println(s);
     }
 }
