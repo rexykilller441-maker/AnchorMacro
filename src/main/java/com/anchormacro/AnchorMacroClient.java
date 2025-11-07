@@ -4,63 +4,69 @@ import com.anchormacro.modules.ModuleManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.entity.Entity;
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
+import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Client initializer: handles keybinds, tick integration, and a simple left-click attack detector.
+ * AnchorMacroClient — main mod entry point.
+ * Handles ticking and input for AnchorMacro + modules (AutoTotem, TotemHit, Hitboxes)
  */
 public class AnchorMacroClient implements ClientModInitializer {
-    public static MinecraftClient mc;
-    private boolean prevLeft = false;
+    private static boolean prevLeft = false;
 
     @Override
     public void onInitializeClient() {
-        mc = MinecraftClient.getInstance();
+        System.out.println("[AnchorMacro] Client initialized ✅");
 
-        // register keybinds earlier code may have
-        AnchorMacroKeybinds.register();
-
-        // tick registration: module ticks
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client == null) return;
-            if (client.player == null) return;
+            if (client.player == null || client.world == null) return;
 
-            // run module ticks
-            ModuleManager.tick(client);
+            // === Tick modules ===
+            ModuleManager.tickAll();
 
-            // simple left-click detection to trigger onAttack (client-side raycast)
-            long window = client.getWindow().getHandle();
-            boolean leftDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
-            if (leftDown && !prevLeft) {
-                // button pressed this tick — find targeted entity
-                HitResult hr = client.crosshairTarget;
-                if (hr != null && hr.getType() == HitResult.Type.ENTITY) {
-                    // convert to entity and call modules
+            // === Handle left-click attacks ===
+            handleAttackInput(client);
+        });
+    }
+
+    private void handleAttackInput(MinecraftClient client) {
+        long window = client.getWindow().getHandle();
+        boolean leftDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+
+        // detect edge (pressed now, not previous)
+        if (leftDown && !prevLeft) {
+            Entity target = null;
+
+            // Try hitbox-expanded raycast if enabled
+            if (ModuleManager.hitboxes != null && ModuleManager.hitboxes.isEnabled()) {
+                target = ModuleManager.hitboxes.expandedRaycastTarget(ModuleManager.hitboxes.distance);
+            }
+
+            // fallback to vanilla crosshair
+            if (target == null && client.crosshairTarget instanceof EntityHitResult ehr) {
+                target = ehr.getEntity();
+            }
+
+            if (target != null) {
+                // If TotemHit enabled, handle with sword-knockback logic
+                if (ModuleManager.totemHit.isEnabled()) {
+                    ModuleManager.onAttack(target);
+                } else {
+                    // send normal attack packet
                     try {
-                        net.minecraft.util.hit.EntityHitResult erh = (net.minecraft.util.hit.EntityHitResult) hr;
-                        if (erh.getEntity() != null) ModuleManager.onAttack(erh.getEntity());
+                        if (client.getNetworkHandler() != null) {
+                            client.getNetworkHandler().sendPacket(
+                                    PlayerInteractEntityC2SPacket.attack(target, client.player.isSneaking())
+                            );
+                        }
                     } catch (Exception ignored) {}
                 }
             }
-            prevLeft = leftDown;
-        });
+        }
 
-        // render stage: modules that render (e.g., hitboxes) will be called from a screen overlay.
-        // We call render in a client tick render phase via another simple registration
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            // modules that perform world rendering should draw themselves during the world render,
-            // but to keep things simple we call ModuleManager.render on END_CLIENT_TICK which is safe for our debug boxes.
-            // If needed, move to proper render callbacks.
-        });
-
-        System.out.println("[AnchorMacro] ModuleManager integrated.");
-    }
-
-    public void openConfigScreen() {
-        if (mc == null) mc = MinecraftClient.getInstance();
-        Screen s = new com.anchormacro.ui.ModulesGuiScreen(mc.currentScreen);
-        mc.setScreen(s);
+        prevLeft = leftDown;
     }
 }
