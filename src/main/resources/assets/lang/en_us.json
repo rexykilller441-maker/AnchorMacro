@@ -1,19 +1,41 @@
 {
-  "key.anchormacro.execute": "Execute Anchor Macro",
-  "key.anchormacro.open_settings": "Open Anchor Macro Settings",
-  "key.anchormacro.test": "Anchor Macro Test",
-  "category.anchormacro.main": "Anchor Macro",
-  "anchormacro.gui.title": "Anchor Macro Settings",
-  "anchormacro.gui.delays": "Action Delays (ticks)",
-  "anchormacro.gui.slots": "Hotbar Slots (1-9)",
-  "anchormacro.gui.safe_mode": "Safe Anchor Mode",
-  "anchormacro.gui.explode_with_totem": "Explode only if totem present",
-  "anchormacro.gui.auto_search": "Auto-search hotbar (1-9)",
-  "anchormacro.gui.notifications": "Show notifications",
-  "anchormacro.gui.save": "Save",
+  "modmenu.descriptionTranslation.anchormacro": "AnchorMacro — a customizable automation and combat utility mod.",
+
+  "anchormacro.title": "AnchorMacro",
+  "anchormacro.config.title": "AnchorMacro Configuration",
+
+  "anchormacro.config.enable_macro": "Enable Anchor Macro",
+  "anchormacro.config.delay": "Anchor Delay (ms)",
+  "anchormacro.config.safe_mode": "Safe Anchor Mode",
+  "anchormacro.config.auto_search": "Auto Search for Anchor, Glowstone, and Totem",
+  "anchormacro.config.test_mode": "Testing Mode (Hotbar Key)",
+
+  "anchormacro.module.category.combat": "Combat Modules",
+
+  "anchormacro.module.anchormacro": "Anchor Macro",
+  "anchormacro.module.autototem": "Auto Totem",
+  "anchormacro.module.totemhit": "Totem Hit",
+  "anchormacro.module.hitbox": "Hitbox Expansion",
+
+  "anchormacro.module.autototem.desc": "Automatically replaces empty offhand or mainhand slot with a Totem of Undying when popped.",
+  "anchormacro.module.totemhit.desc": "Allows the player to deal normal knockback when attacking with a Totem of Undying.",
+  "anchormacro.module.hitbox.desc": "Expands hitboxes of nearby entities (players and mobs) for easier targeting.",
+  "anchormacro.module.anchormacro.desc": "Automates the placement and charging of respawn anchors for PvP use.",
+
+  "anchormacro.config.toggles.auto_search": "Auto Search Toggle",
+  "anchormacro.config.toggles.safe_mode": "Enable Safe Mode",
+  "anchormacro.config.toggles.test_key": "Test Mode Key",
+
+  "anchormacro.gui.save": "Save Settings",
   "anchormacro.gui.cancel": "Cancel",
-  "anchormacro.gui.reset": "Reset to defaults",
-  "anchormacro.notification.no_glowstone": "No glowstone found in hotbar!",
-  "anchormacro.notification.no_anchor": "No respawn anchor found in hotbar!",
-  "anchormacro.notification.no_totem": "No totem found in hotbar!"
+  "anchormacro.gui.enabled": "Enabled",
+  "anchormacro.gui.disabled": "Disabled",
+  "anchormacro.gui.back": "Back",
+  "anchormacro.gui.apply": "Apply",
+  "anchormacro.gui.done": "Done",
+
+  "anchormacro.status.enabled": "AnchorMacro Enabled",
+  "anchormacro.status.disabled": "AnchorMacro Disabled",
+  "anchormacro.status.testing": "Testing Mode Activated",
+  "anchormacro.status.test_success": "AnchorMacro Test Successful – Mod is Working!"
 }
