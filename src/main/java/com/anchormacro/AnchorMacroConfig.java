@@ -2,58 +2,74 @@ package com.anchormacro;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-/**
- * Simple JSON config persisted in config/anchormacro.json
- */
 public class AnchorMacroConfig {
-    public boolean anchorMacroEnabled = true;
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final File FILE = new File("config/anchormacro.json");
 
-    public boolean autoTotemEnabled = true;
-    public boolean totemHitEnabled = true;
-    public boolean hitboxEnabled = true;
+    // ===============================
+    // Default configuration values
+    // ===============================
+    public static int anchorSlot = 0;
+    public static int glowstoneSlot = 1;
+    public static int totemSlot = 2;
 
-    // hitbox settings
-    public float hitboxExpand = 0.5f;
-    public float hitboxDistance = 6.0f;
+    public static boolean autoSearchHotbar = true;
+    public static boolean showNotifications = true;
+    public static boolean explodeOnlyIfTotemPresent = false;
+    public static boolean safeAnchorMode = true;
 
-    private static final Path CONFIG_PATH = Path.of("config", "anchormacro.json");
-    private static AnchorMacroConfig INSTANCE;
-    private static final Gson G = new GsonBuilder().setPrettyPrinting().create();
+    public static int delayPlaceAnchor = 3;
+    public static int delaySwitchToGlowstone = 3;
+    public static int delayChargeAnchor = 3;
+    public static int delaySwitchToTotem = 3;
+    public static int delayExplodeAnchor = 3;
 
-    public static AnchorMacroConfig get() {
-        if (INSTANCE == null) load();
-        return INSTANCE;
-    }
-
+    // ===============================
+    // Config IO
+    // ===============================
     public static void load() {
         try {
-            if (Files.exists(CONFIG_PATH)) {
-                try (Reader r = Files.newBufferedReader(CONFIG_PATH)) {
-                    INSTANCE = G.fromJson(r, AnchorMacroConfig.class);
-                }
-            } else {
-                INSTANCE = new AnchorMacroConfig();
-                INSTANCE.save();
+            if (!FILE.exists()) {
+                save();
+                return;
+            }
+            AnchorMacroConfig loaded = GSON.fromJson(new FileReader(FILE), AnchorMacroConfig.class);
+            if (loaded != null) {
+                anchorSlot = loaded.anchorSlot;
+                glowstoneSlot = loaded.glowstoneSlot;
+                totemSlot = loaded.totemSlot;
+                autoSearchHotbar = loaded.autoSearchHotbar;
+                showNotifications = loaded.showNotifications;
+                explodeOnlyIfTotemPresent = loaded.explodeOnlyIfTotemPresent;
+                safeAnchorMode = loaded.safeAnchorMode;
+                delayPlaceAnchor = loaded.delayPlaceAnchor;
+                delaySwitchToGlowstone = loaded.delaySwitchToGlowstone;
+                delayChargeAnchor = loaded.delayChargeAnchor;
+                delaySwitchToTotem = loaded.delaySwitchToTotem;
+                delayExplodeAnchor = loaded.delayExplodeAnchor;
             }
         } catch (Exception e) {
-            AnchorMacroClient.log("Failed to load config: " + e.getMessage());
-            INSTANCE = new AnchorMacroConfig();
+            System.err.println("Failed to load AnchorMacro config: " + e.getMessage());
         }
     }
 
-    public void save() {
+    public static void save() {
         try {
-            Files.createDirectories(CONFIG_PATH.getParent());
-            try (Writer w = Files.newBufferedWriter(CONFIG_PATH)) {
-                G.toJson(this, w);
+            FILE.getParentFile().mkdirs();
+            try (FileWriter w = new FileWriter(FILE)) {
+                GSON.toJson(new AnchorMacroConfig(), w);
             }
-        } catch (Exception e) {
-            AnchorMacroClient.log("Failed to save config: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Failed to save AnchorMacro config: " + e.getMessage());
         }
+    }
+
+    public static int guiToInternalSlot(int guiSlot) {
+        return (guiSlot >= 0 && guiSlot < 9) ? guiSlot : 0;
     }
 }
