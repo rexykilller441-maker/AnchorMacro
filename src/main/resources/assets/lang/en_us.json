@@ -1,43 +1,17 @@
 {
-  "modmenu.descriptionTranslation.anchormacro": "Anchor Macro + Combat Module Pack by REXYKILLER441 — Automate anchors, combat, and survival features easily!",
-  "anchormacro.title": "Anchor Macro Settings",
-  "anchormacro.option.anchor_macro": "Anchor Macro",
-  "anchormacro.option.auto_totem": "Auto Totem",
-  "anchormacro.option.totem_hit": "Totem Hit",
-  "anchormacro.option.hitbox": "Hitbox",
-  "anchormacro.option.on": "ON",
-  "anchormacro.option.off": "OFF",
-  "anchormacro.option.back": "Back",
+  "modmenu.descriptionTranslation.anchormacro": "Anchor Macro Advanced: Ultimate automation utility by REXYKILLER441 <3",
+  "key.anchormacro.toggle": "Toggle Anchor Macro",
+  "category.anchormacro": "Anchor Macro",
 
-  "anchormacro.tooltip.anchor_macro": "Automatically places, charges, and detonates respawn anchors.",
-  "anchormacro.tooltip.auto_totem": "Automatically replaces empty offhand or main hand slot with a totem after pop.",
-  "anchormacro.tooltip.totem_hit": "When holding a totem, hitting enemies knocks them back like a sword.",
-  "anchormacro.tooltip.hitbox": "Expands hitboxes of entities (players, mobs, crystals) for visibility or testing.",
+  "option.anchormacro.autoSearchHotbar": "AutoTotem",
+  "option.anchormacro.autoSearchHotbar.desc": "Automatically replaces totems in offhand when popped.",
 
-  "anchormacro.category.combat": "Combat Modules",
-  "anchormacro.category.utility": "Utility Modules",
+  "option.anchormacro.explodeOnlyIfTotemPresent": "TotemHit",
+  "option.anchormacro.explodeOnlyIfTotemPresent.desc": "Hitting with a totem applies knockback.",
 
-  "anchormacro.status.enabled": "Enabled",
-  "anchormacro.status.disabled": "Disabled",
+  "option.anchormacro.hitboxEnabled": "Hitboxes",
+  "option.anchormacro.hitboxEnabled.desc": "Show expanded hitboxes for all nearby entities.",
 
-  "anchormacro.message.anchor_macro.enabled": "Anchor Macro activated!",
-  "anchormacro.message.anchor_macro.disabled": "Anchor Macro deactivated!",
-  "anchormacro.message.auto_totem.enabled": "Auto Totem activated!",
-  "anchormacro.message.auto_totem.disabled": "Auto Totem deactivated!",
-  "anchormacro.message.totem_hit.enabled": "Totem Hit enabled!",
-  "anchormacro.message.totem_hit.disabled": "Totem Hit disabled!",
-  "anchormacro.message.hitbox.enabled": "Hitbox rendering enabled!",
-  "anchormacro.message.hitbox.disabled": "Hitbox rendering disabled!",
-
-  "anchormacro.gui.scroll_hint": "Use mouse wheel to scroll.",
-  "anchormacro.gui.toggle_hint": "Click to toggle ON/OFF.",
-  "anchormacro.gui.back_hint": "Return to previous screen.",
-
-  "key.anchormacro.activate": "Activate Anchor Macro",
-  "key.anchormacro.open_settings": "Open Anchor Macro Settings",
-  "category.anchormacro.keys": "Anchor Macro Keybinds",
-
-  "anchormacro.dev.credit": "Created with ❤️ by REXYKILLER441",
-  "anchormacro.dev.version": "Version 1.2.0",
-  "anchormacro.dev.note": "This mod integrates advanced automation and PvP utilities."
+  "option.anchormacro.hitboxExpand": "Hitbox Size",
+  "option.anchormacro.hitboxDistance": "Hitbox Distance"
 }
